@@ -1,20 +1,15 @@
 package com.game.slot.core;
 
-import static com.game.slot.common.Direction.LEFT;
 import static com.game.slot.common.SymbolType.NORMAL;
 import static com.game.slot.common.SymbolType.WILD;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.MapUtils;
-
-import com.game.slot.common.Direction;
 import com.game.slot.common.LineRule;
 import com.game.slot.common.SymbolType;
 import com.game.slot.config.SlotConfig;
@@ -49,54 +44,58 @@ public class SlotMachine {
 	}
 	
 	public GameResult calculate(Screen screen, BigDecimal bet) {
-		Map<Line, List<Symbol>> lineMap = new TreeMap<>();
+		Map<Line, List<MatrixSymbol>> lineMap = new TreeMap<>();
 		
 		config.getLines().stream().forEach(line -> {
-			List<Symbol> lineSymbols = Lists.transform(line.getCoordinates(), c -> screen.get(c));
+			List<MatrixSymbol> lineSymbols = Lists.transform(line.getCoordinates(), c -> screen.get(c));
 			lineMap.put(line, lineSymbols);
 		});
 		
-		List<LinePattern> linePatterns = lineMap.entrySet().stream().map(entry -> calculateLine(entry.getKey(), entry.getValue()))
-			.filter(pattern -> pattern != null).collect(Collectors.toList());
+		List<LinePattern> linePatterns = lineMap.entrySet().stream()
+				.map(entry -> calculateLine(entry.getKey(), entry.getValue()))
+				.filter(pattern -> pattern != null).collect(Collectors.toList());
 		
 		Map<SymbolType, List<Pattern>> patterns = calculateScatter(screen);
 		
 		GameResult result = new GameResult();
 		result.setBet(bet);
+		result.setScreen(screen);
 		result.setLinePatterns(linePatterns);
 		result.setPatterns(patterns);
 		
 		return result;
 	}
 	
+	/**
+	 * 计算散点symbol(所有非线上symbol)
+	 * @param screen
+	 * @return
+	 */
 	private Map<SymbolType, List<Pattern>> calculateScatter(Screen screen) {
-		Map<SymbolType, List<Pattern>> result = new HashMap<>();
 		
-		Map<Symbol, List<Coordinate>> symbolMap = screen.getMatrixSymbols().stream()
-				.filter(matrixSymbol -> matrixSymbol.getSymbol().getType().compareTo(WILD) > 0)
-				.collect(Collectors.groupingBy(MatrixSymbol::getSymbol, Collectors.mapping(MatrixSymbol::getCoordinate, Collectors.toList())));
+		Map<SymbolType, List<Pattern>> result = screen.getMatrixSymbols().stream()
+				.filter(matrixSymbol -> matrixSymbol.getType().compareTo(WILD) > 0)	//找出特殊symbol
+				.collect(Collectors.groupingBy(MatrixSymbol::getSettleId)).entrySet().stream()	//按settleId分组
+				.filter(entry -> {	//过滤掉数量不足的组合
+					int count = entry.getValue().size();
+					int minCount = config.getPayTable().getMinCount(entry.getKey());
+					return count >= minCount;
+				}).map(entry -> {	//转换成pattern
+					int settleId = entry.getKey();
+					List<MatrixSymbol> symbols = entry.getValue();
+					SymbolType type = symbols.get(0).getType();
+					int count = symbols.size();
+					BigDecimal multiple = config.getPayTable().getMultiple(settleId, count);
+					
+					Pattern pattern = new Pattern();
+					pattern.setType(type);
+					pattern.setSettleId(settleId);
+					pattern.setCount(count);
+					pattern.setSymbols(symbols);
+					pattern.setBaseMultiple(multiple);
+					return pattern;
+				}).collect(Collectors.groupingBy(Pattern::getType));	//按symbolType分组
 		
-		if (MapUtils.isNotEmpty(symbolMap)) {
-			result = symbolMap.entrySet().stream().filter(entry -> {
-				int count = entry.getValue().size();
-				int minCount = config.getPayTable().getMinCount(entry.getKey().getId());
-				return count >= minCount;
-			}).map(entry -> {
-				Symbol winSymbol = entry.getKey();
-				List<Coordinate> winCoordinates = entry.getValue();
-				int count = winCoordinates.size();
-				BigDecimal multiple = config.getPayTable().getMultiple(winSymbol.getId(), count);
-				
-				Pattern pattern = new Pattern();
-				pattern.setWinSymbol(winSymbol);
-				pattern.setCount(count);
-				pattern.setMultiple(multiple);
-				pattern.setWinCoordinates(winCoordinates);
-				return pattern;
-				
-			}).collect(Collectors.groupingBy(pattern -> pattern.getWinSymbol().getType()));
-			
-		}
 		return result;
 	}
 	
@@ -111,11 +110,14 @@ public class SlotMachine {
 		
 	}
 	
-	private LinePattern calculateLine(Line payLine, List<Symbol> lineSymbols) {
-		LinePattern pattern = calculateLine(payLine, lineSymbols, Direction.LEFT);
+	/**
+	 * 计算线中奖情况
+	 */
+	private LinePattern calculateLine(Line payLine, List<MatrixSymbol> lineSymbols) {
+		LinePattern pattern = _calculateLine(payLine, lineSymbols);
 		if (config.getLineRule() == LineRule.BOTH_SIDE) {
 			lineSymbols = Lists.reverse(lineSymbols);
-			LinePattern reversePattern = calculateLine(payLine, lineSymbols, Direction.RIGHT);
+			LinePattern reversePattern = _calculateLine(payLine, lineSymbols);
 			if (reversePattern != null && reversePattern.compareTo(pattern) > 0){
 				pattern = reversePattern;
 			}
@@ -123,34 +125,35 @@ public class SlotMachine {
 		return pattern;
 	}
 	
-	private LinePattern calculateLine(Line payLine, List<Symbol> lineSymbols, Direction direction) {
-		int length = payLine.getLength();
-		Symbol[] line = lineSymbols.toArray(new Symbol[length]);
+	private LinePattern _calculateLine(Line payLine, List<MatrixSymbol> lineSymbols) {
+		MatrixSymbol[] line = lineSymbols.toArray(new MatrixSymbol[lineSymbols.size()]);
 		
-		Symbol target = line[0];
+		Symbol target = line[0].getSymbol();
 		if (target.getType() == NORMAL || target.getType() == WILD) {
 			int count = 1;
 			for (int i = 1; i < line.length; i++) {
-				if (line[i].getId() == target.getId() || line[i].getType() == WILD) {
+				if (line[i].getSymbol().match(target) || line[i].getType() == WILD) {
 					count ++;
 				} else if (target.getType() == WILD && line[i].getType() == NORMAL) {
-					target = line[i];
+					target = line[i].getSymbol();
 					count ++;
 				} else {
 					break;
 				}
 			}
-			int minCount = config.getPayTable().getMinCount(target.getId());
+			int minCount = config.getPayTable().getMinCount(target.getSettleId());
 			if (count >= minCount) {
 				LinePattern pattern = new LinePattern();
 				pattern.setLine(payLine);
-				pattern.setWinSymbol(target);
+				pattern.setType(target.getType());
+				pattern.setSettleId(target.getSettleId());
 				pattern.setCount(count);
-				BigDecimal multiple = config.getPayTable().getMultiple(target.getId(), count);
-				pattern.setMultiple(multiple);
-				List<Coordinate> winCoordinates = (direction == LEFT ? payLine.getCoordinates().subList(0, count) 
-						: payLine.getCoordinates().subList(length - count, length));
-				pattern.setWinCoordinates(winCoordinates);
+				
+				BigDecimal multiple = config.getPayTable().getMultiple(target.getSettleId(), count);
+				pattern.setBaseMultiple(multiple);
+				
+				List<MatrixSymbol> symbols = lineSymbols.subList(0, count);
+				pattern.setSymbols(symbols);
 				return pattern;
 			}
 		}

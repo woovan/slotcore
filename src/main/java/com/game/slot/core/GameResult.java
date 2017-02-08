@@ -10,10 +10,13 @@ import org.apache.commons.collections.MapUtils;
 import com.game.slot.common.SymbolType;
 import com.game.slot.model.LinePattern;
 import com.game.slot.model.Pattern;
+import com.game.slot.model.Screen;
 
 public class GameResult {
 	
 	private BigDecimal bet;
+	
+	private Screen screen;
 
 	private List<LinePattern> linePatterns;
 	
@@ -25,10 +28,20 @@ public class GameResult {
 	
 	public BigDecimal winCoins() {
 		if (CollectionUtils.isNotEmpty(linePatterns)) {
-			BigDecimal sumMultiple = linePatterns.stream().map(pattern -> pattern.getMultiple()).reduce(BigDecimal.ZERO, BigDecimal::add);
+			BigDecimal sumMultiple = linePatterns.stream().map(pattern -> pattern.getTotalMultiple()).reduce(BigDecimal.ZERO, BigDecimal::add);
 			return bet.multiply(sumMultiple);
 		}
 		return BigDecimal.ZERO;
+	}
+	
+	public void print() {
+		linePatterns.forEach(pattern -> screen.print(pattern));
+		
+		patterns.entrySet().forEach(entry -> {
+			System.out.print(entry.getKey() + ": ");
+			entry.getValue().forEach(pattern -> screen.print(pattern));
+		});
+		System.out.println("______________________________");
 	}
 	
 	@Override
@@ -38,6 +51,14 @@ public class GameResult {
 
 	public BigDecimal getBet() {
 		return bet;
+	}
+
+	public Screen getScreen() {
+		return screen;
+	}
+
+	public void setScreen(Screen screen) {
+		this.screen = screen;
 	}
 
 	public void setBet(BigDecimal bet) {

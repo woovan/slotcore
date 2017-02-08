@@ -1,5 +1,12 @@
 package com.game.slot.model;
 
+import com.game.slot.common.SymbolType;
+
+/**
+ * ¾ØÕóÖĞµÄsymbol
+ * @author Administrator
+ *
+ */
 public class MatrixSymbol {
 
 	private Coordinate coordinate;
@@ -10,7 +17,27 @@ public class MatrixSymbol {
 		this.coordinate = coordinate;
 		this.symbol = symbol;
 	}
-
+	
+	public int getId() {
+		return symbol.getId();
+	}
+	
+	public SymbolType getType() {
+		return symbol.getType();
+	}
+	
+	public int getSettleId() {
+		return symbol.getSettleId();
+	}
+	
+	public int getX() {
+		return coordinate.getX();
+	}
+	
+	public int getY() {
+		return coordinate.getY();
+	}
+	
 	public Coordinate getCoordinate() {
 		return coordinate;
 	}

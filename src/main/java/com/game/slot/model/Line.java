@@ -2,6 +2,11 @@ package com.game.slot.model;
 
 import java.util.List;
 
+/**
+ * payLine ÏßÐÍ
+ * @author Administrator
+ *
+ */
 public class Line implements Comparable<Line> {
 	
 	private int id;

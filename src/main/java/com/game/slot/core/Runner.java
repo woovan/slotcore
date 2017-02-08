@@ -7,6 +7,10 @@ import com.game.slot.config.SlotConfig;
 import com.game.slot.model.Screen;
 
 public class Runner {
+	
+	public static final int PLAY_COUNT = 10;
+	
+	public static final boolean PRINT_LOG = true;
 
 	public static void main(String[] args) {
 		
@@ -15,13 +19,12 @@ public class Runner {
 		
 		long beginTm = System.currentTimeMillis();
 		
-		for (int i = 0; i < 1000000; i++) {
+		for (int i = 0; i < PLAY_COUNT; i++) {
 			Screen screen = slot.spin();
-//			SlotUtil.printScreen(screen);
+			if (PRINT_LOG) screen.print();
 			
 			GameResult result = slot.calculate(screen, BigDecimal.TEN);
-			
-//			SlotUtil.printResult(screen, result);
+			if (PRINT_LOG) result.print();
 		}
 		
 		System.out.println("cost:" + (System.currentTimeMillis() - beginTm) + "ms");

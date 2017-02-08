@@ -5,6 +5,11 @@ import java.util.List;
 
 import org.apache.commons.lang3.RandomUtils;
 
+/**
+ * Öá
+ * @author Administrator
+ *
+ */
 public class Reel {
 
 	private List<Integer> symbols;

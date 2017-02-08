@@ -1,5 +1,10 @@
 package com.game.slot.model;
 
+/**
+ * screen中的坐标
+ * @author Administrator
+ *
+ */
 public class Coordinate implements Comparable<Coordinate> {
 
 	private int x;
@@ -39,7 +44,7 @@ public class Coordinate implements Comparable<Coordinate> {
 	
 	@Override
 	public int hashCode() {
-		return (y << 3) + x;
+		return (y << 4) ^ x;	//左移4位相当于y*16，支持x最大值15
 	}
 
 	public int getX() {
