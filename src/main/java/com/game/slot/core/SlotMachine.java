@@ -10,15 +10,20 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.MapUtils;
+
 import com.game.slot.common.LineRule;
 import com.game.slot.common.SymbolType;
 import com.game.slot.config.SlotConfig;
 import com.game.slot.model.Coordinate;
+import com.game.slot.model.GameState;
 import com.game.slot.model.Line;
 import com.game.slot.model.LinePattern;
 import com.game.slot.model.MatrixSymbol;
 import com.game.slot.model.Pattern;
+import com.game.slot.model.Reel;
 import com.game.slot.model.Screen;
+import com.game.slot.model.Setting;
 import com.game.slot.model.Symbol;
 import com.google.common.collect.Lists;
 
@@ -26,16 +31,41 @@ public class SlotMachine {
 
 	private SlotConfig config;
 	
+	private SlotMachine freeSpinSlotMachine;
+	
 	public SlotMachine(SlotConfig config) {
 		this.config = config;
 	}
 
-	public Screen spin() {
+	public RoundResult spin(Setting setting) {
+		
+		GameState state = new GameState();
+		Screen screen = reelSpin(state);
+		
+		return calculate(screen, setting);
+	}
+	
+	public RoundResult freeSpin(Setting setting) {
+		return freeSpinSlotMachine != null ? freeSpinSlotMachine.spin(setting) : spin(setting);
+	}
+	
+	/**
+	 * 轴转动 返回屏幕结果
+	 * @return
+	 */
+	private Screen reelSpin(GameState state) {
 		Screen screen = new Screen();
 		
-		List<List<Integer>> symbolColumns = Lists.transform(config.getReels(), reel -> reel.spin(config.getRowNum()));
-		for (int x = 0; x < symbolColumns.size(); x++) {
-			List<Integer> column = symbolColumns.get(x);
+		List<Reel> reels = config.getReels();
+		List<Integer> reelIndices = reels.stream().map(reel -> reel.spin()).collect(Collectors.toList());
+		
+		if (MapUtils.isNotEmpty(state.getPresetReels())) {
+			state.getPresetReels().entrySet().stream().forEach(entry -> reelIndices.set(entry.getKey(), entry.getValue()));
+		}
+		screen.setReelIndices(reelIndices);
+		
+		for (int x = 0; x < reels.size(); x++) {
+			List<Integer> column = reels.get(x).getSymbols(reelIndices.get(x), config.getRowNum());
 			for (int y = 0; y < column.size(); y++) {
 				screen.put(new Coordinate(x, y), config.getSymbol(column.get(y)));
 			}
@@ -43,7 +73,13 @@ public class SlotMachine {
 		return screen;
 	}
 	
-	public GameResult calculate(Screen screen, BigDecimal bet) {
+	/**
+	 * 计算中奖情况
+	 * @param screen
+	 * @param setting
+	 * @return
+	 */
+	private RoundResult calculate(Screen screen, Setting setting) {
 		Map<Line, List<MatrixSymbol>> lineMap = new TreeMap<>();
 		
 		config.getLines().stream().forEach(line -> {
@@ -57,8 +93,8 @@ public class SlotMachine {
 		
 		Map<SymbolType, List<Pattern>> patterns = calculateScatter(screen);
 		
-		GameResult result = new GameResult();
-		result.setBet(bet);
+		RoundResult result = new RoundResult();
+		result.setSetting(setting);
 		result.setScreen(screen);
 		result.setLinePatterns(linePatterns);
 		result.setPatterns(patterns);
@@ -166,6 +202,14 @@ public class SlotMachine {
 
 	public void setConfig(SlotConfig config) {
 		this.config = config;
+	}
+
+	public SlotMachine getFreeSpinSlotMachine() {
+		return freeSpinSlotMachine;
+	}
+
+	public void setFreeSpinSlotMachine(SlotMachine freeSpinSlotMachine) {
+		this.freeSpinSlotMachine = freeSpinSlotMachine;
 	}
 	
 }

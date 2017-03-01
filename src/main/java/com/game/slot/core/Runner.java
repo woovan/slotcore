@@ -23,7 +23,7 @@ public class Runner {
 			Screen screen = slot.spin();
 			if (PRINT_LOG) screen.print();
 			
-			GameResult result = slot.calculate(screen, BigDecimal.TEN);
+			RoundResult result = slot.calculate(screen, BigDecimal.TEN);
 			if (PRINT_LOG) result.print();
 		}
 		

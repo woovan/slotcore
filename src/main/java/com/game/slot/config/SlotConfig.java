@@ -35,6 +35,8 @@ public class SlotConfig {
 	
 	private Set<Coordinate> invalidCoordinates;
 	
+	private String freeSpin;
+	
 	@Override
 	public String toString() {
 		return JSON.toJSONString(this);
@@ -113,6 +115,14 @@ public class SlotConfig {
 
 	public void setInvalidCoordinates(Set<Coordinate> invalidCoordinates) {
 		this.invalidCoordinates = invalidCoordinates;
+	}
+
+	public String getFreeSpin() {
+		return freeSpin;
+	}
+
+	public void setFreeSpin(String freeSpin) {
+		this.freeSpin = freeSpin;
 	}
 
 }

@@ -22,14 +22,23 @@ public class Reel {
 		this.symbols = symbols;
 	}
 
-	public List<Integer> spin(int rowNum) {
-		int index = RandomUtils.nextInt(0, symbols.size());
-		return spin(index, rowNum);
+	/**
+	 * 轴转动，返回轴停的index
+	 * @return
+	 */
+	public int spin() {
+		return RandomUtils.nextInt(0, symbols.size());
 	}
 	
-	public List<Integer> spin(int index, int rowNum) {
+	/**
+	 * 获取轴上的元素
+	 * @param index	起始位置
+	 * @param count	数量
+	 * @return
+	 */
+	public List<Integer> getSymbols(int index, int count) {
 		int length = symbols.size();
-		int endIndex = index + rowNum;
+		int endIndex = index + count;
 		if (endIndex > length) {
 			List<Integer> list = new ArrayList<>(symbols.subList(index, length));
 			list.addAll(symbols.subList(0, endIndex - length));

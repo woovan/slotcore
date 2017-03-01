@@ -15,6 +15,8 @@ import org.apache.commons.lang3.StringUtils;
 public class Screen {
 	
 	private static final int SPACE = 5;
+	
+	private List<Integer> reelIndices;
 
 	private Map<Coordinate, MatrixSymbol> matrix = new TreeMap<>();
 	
@@ -69,6 +71,14 @@ public class Screen {
 			y = c.getY();
 		}
 		System.out.println("|\r\n");
+	}
+
+	public List<Integer> getReelIndices() {
+		return reelIndices;
+	}
+
+	public void setReelIndices(List<Integer> reelIndices) {
+		this.reelIndices = reelIndices;
 	}
 	
 	
