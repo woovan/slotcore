@@ -1,5 +1,7 @@
 package com.game.slot.core;
 
+import static com.game.slot.common.SymbolType.WILD;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -8,21 +10,28 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 
 import com.game.slot.common.SymbolType;
-import static com.game.slot.common.SymbolType.*;
 import com.game.slot.model.LinePattern;
 import com.game.slot.model.Pattern;
 import com.game.slot.model.Screen;
 import com.game.slot.model.Setting;
 
-public class RoundResult {
+public class RoundResult implements IRoundResult {
 	
+	/** 游戏设置 */
 	private Setting setting;
 	
+	/** 屏幕显示 */
 	private Screen screen;
 
+	/** 普通图标中奖线型 */
 	private List<LinePattern> linePatterns;
 	
-	private Map<SymbolType, List<Pattern>> patterns;
+	/** 特殊图标中奖图形 SymbolType为 BONUS SCATTER等 */
+	private Map<SymbolType, Pattern> patterns;
+	
+	/** bonus游戏结果 没中bonus为null */
+	private BonusResult bonusResult;
+	
 	
 	public boolean isWin() {
 		return CollectionUtils.isNotEmpty(linePatterns) || MapUtils.isNotEmpty(patterns);
@@ -34,9 +43,13 @@ public class RoundResult {
 	
 	public BigDecimal winCoins() {
 		if (CollectionUtils.isNotEmpty(linePatterns)) {
-			BigDecimal sumMultiple = linePatterns.stream().map(pattern -> pattern.getTotalMultiple()).reduce(BigDecimal.ZERO, BigDecimal::add);
+			BigDecimal sumMultiple = linePatterns.stream().map(pattern -> pattern.getTotalMultiple()).reduce(BigDecimal::add).get();
 			return getBet().multiply(sumMultiple);
 		}
+		return BigDecimal.ZERO;
+	}
+	
+	public BigDecimal bonusWinCoins() {
 		return BigDecimal.ZERO;
 	}
 	
@@ -45,7 +58,7 @@ public class RoundResult {
 		
 		patterns.entrySet().forEach(entry -> {
 			System.out.print(entry.getKey() + ": ");
-			entry.getValue().forEach(pattern -> screen.print(pattern));
+			screen.print(entry.getValue());
 		});
 		System.out.println("______________________________");
 	}
@@ -83,11 +96,11 @@ public class RoundResult {
 		this.linePatterns = linePatterns;
 	}
 
-	public Map<SymbolType, List<Pattern>> getPatterns() {
+	public Map<SymbolType, Pattern> getPatterns() {
 		return patterns;
 	}
 
-	public void setPatterns(Map<SymbolType, List<Pattern>> patterns) {
+	public void setPatterns(Map<SymbolType, Pattern> patterns) {
 		this.patterns = patterns;
 	}
 

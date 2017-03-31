@@ -1,10 +1,11 @@
 package com.game.slot.core;
 
+import static com.game.slot.common.SymbolType.BONUS;
 import static com.game.slot.common.SymbolType.NORMAL;
+import static com.game.slot.common.SymbolType.SCATTER;
 import static com.game.slot.common.SymbolType.WILD;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -15,8 +16,8 @@ import org.apache.commons.collections.MapUtils;
 import com.game.slot.common.LineRule;
 import com.game.slot.common.SymbolType;
 import com.game.slot.config.SlotConfig;
+import com.game.slot.core.handler.IPatternHandler;
 import com.game.slot.model.Coordinate;
-import com.game.slot.model.GameState;
 import com.game.slot.model.Line;
 import com.game.slot.model.LinePattern;
 import com.game.slot.model.MatrixSymbol;
@@ -33,16 +34,43 @@ public class SlotMachine {
 	
 	private SlotMachine freeSpinSlotMachine;
 	
+	private IPatternHandler lineHandler;
+	
+	private Map<SymbolType, IPatternHandler> specialSymbolHandler;
+	
+	
 	public SlotMachine(SlotConfig config) {
 		this.config = config;
 	}
 
+	public GameResult play(Setting setting) {
+		
+		GameResult result = new GameResult();
+		
+		RoundResult firstRound = spin(setting);
+		
+		if (firstRound.isWin(BONUS)) {
+			
+		}
+		
+		if (firstRound.isWin(SCATTER)) {
+			int freeSpinCount = 1;//firstRound.getFreeSpinCount();
+			for (int i = 0; i < freeSpinCount; i++) {
+				
+			}
+		}
+		
+		return result;
+	}
+	
 	public RoundResult spin(Setting setting) {
+		Screen screen = reelSpin(setting);
+		RoundResult result = calculate(screen, setting);
 		
-		GameState state = new GameState();
-		Screen screen = reelSpin(state);
-		
-		return calculate(screen, setting);
+		if (result.isWin(BONUS)) {
+				
+		}
+		return result;
 	}
 	
 	public RoundResult freeSpin(Setting setting) {
@@ -53,14 +81,14 @@ public class SlotMachine {
 	 * 轴转动 返回屏幕结果
 	 * @return
 	 */
-	private Screen reelSpin(GameState state) {
+	private Screen reelSpin(Setting setting) {
 		Screen screen = new Screen();
 		
 		List<Reel> reels = config.getReels();
 		List<Integer> reelIndices = reels.stream().map(reel -> reel.spin()).collect(Collectors.toList());
 		
-		if (MapUtils.isNotEmpty(state.getPresetReels())) {
-			state.getPresetReels().entrySet().stream().forEach(entry -> reelIndices.set(entry.getKey(), entry.getValue()));
+		if (MapUtils.isNotEmpty(setting.getPresetReelIdxs())) {
+			setting.getPresetReelIdxs().entrySet().stream().forEach(entry -> reelIndices.set(entry.getKey(), entry.getValue()));
 		}
 		screen.setReelIndices(reelIndices);
 		
@@ -107,11 +135,39 @@ public class SlotMachine {
 	 * @param screen
 	 * @return
 	 */
-	private Map<SymbolType, List<Pattern>> calculateScatter(Screen screen) {
+//	private Map<SymbolType, Pattern> calculateScatter(Screen screen) {
+//		
+//		Map<SymbolType, Pattern> result = screen.getMatrixSymbols().stream()
+//				.filter(matrixSymbol -> matrixSymbol.getType().compareTo(WILD) > 0)	//找出特殊symbol
+//				.collect(Collectors.groupingBy(MatrixSymbol::getSettleId)).entrySet().stream()	//按settleId分组
+//				.filter(entry -> {	//过滤掉数量不足的组合
+//					int count = entry.getValue().size();
+//					int minCount = config.getPayTable().getMinCount(entry.getKey());
+//					return count >= minCount;
+//				}).map(entry -> {	//转换成pattern
+//					int settleId = entry.getKey();
+//					List<MatrixSymbol> symbols = entry.getValue();
+//					SymbolType type = symbols.get(0).getType();
+//					int count = symbols.size();
+//					BigDecimal multiple = config.getPayTable().getMultiple(settleId, count);
+//					
+//					Pattern pattern = new Pattern();
+//					pattern.setType(type);
+//					pattern.setSettleId(settleId);
+//					pattern.setCount(count);
+//					pattern.setSymbols(symbols);
+//					pattern.setBaseMultiple(multiple);
+//					return pattern;
+//				}).collect(Collectors.groupingBy(Pattern::getType));	//按symbolType分组
+//		
+//		return result;
+//	}
+	
+	private Map<SymbolType, Pattern> calculateScatter(Screen screen) {
 		
-		Map<SymbolType, List<Pattern>> result = screen.getMatrixSymbols().stream()
+		Map<SymbolType, Pattern> result = screen.getMatrixSymbols().stream()
 				.filter(matrixSymbol -> matrixSymbol.getType().compareTo(WILD) > 0)	//找出特殊symbol
-				.collect(Collectors.groupingBy(MatrixSymbol::getSettleId)).entrySet().stream()	//按settleId分组
+				.collect(Collectors.groupingBy(MatrixSymbol::getType)).entrySet().stream()	//按symbolType分组
 				.filter(entry -> {	//过滤掉数量不足的组合
 					int count = entry.getValue().size();
 					int minCount = config.getPayTable().getMinCount(entry.getKey());
@@ -133,17 +189,6 @@ public class SlotMachine {
 				}).collect(Collectors.groupingBy(Pattern::getType));	//按symbolType分组
 		
 		return result;
-	}
-	
-	public static void main(String[] args) {
-		List<Symbol> list = new ArrayList<>();
-		for (int i = 0; i < 20; i++) {
-			list.add(new Symbol(i + 1, SymbolType.values()[i % 4]));
-		}
-		System.out.println(list);
-		Map<SymbolType, Integer> map = list.stream().collect(Collectors.groupingBy(Symbol::getType, Collectors.summingInt(p -> 1)));
-		System.out.println(map);
-		
 	}
 	
 	/**

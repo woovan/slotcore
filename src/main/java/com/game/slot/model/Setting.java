@@ -1,19 +1,21 @@
 package com.game.slot.model;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * 老虎机转动设置
- * @author woovan
+ * 老虎机设置
+ * @author Administrator
  *
  */
 public class Setting {
 
+	/** 投注额 */
 	private BigDecimal bet;
 	
-	/** 轴停的位置列表 */
-	private List<Integer> reelIndices;
+	/** 轴停的位置预设值 用于调试或特殊玩法 <reelId, reelIndex> */
+	private Map<Integer, Integer> presetReelIdxs = new HashMap<>();
 
 	public BigDecimal getBet() {
 		return bet;
@@ -23,12 +25,12 @@ public class Setting {
 		this.bet = bet;
 	}
 
-	public List<Integer> getReelIndices() {
-		return reelIndices;
+	public Map<Integer, Integer> getPresetReelIdxs() {
+		return presetReelIdxs;
 	}
 
-	public void setReelIndices(List<Integer> reelIndices) {
-		this.reelIndices = reelIndices;
+	public void setPresetReelIdxs(Map<Integer, Integer> presetReelIdxs) {
+		this.presetReelIdxs = presetReelIdxs;
 	}
 
 }

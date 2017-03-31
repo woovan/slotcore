@@ -6,7 +6,7 @@ import com.game.slot.config.ConfigUtil;
 import com.game.slot.config.SlotConfig;
 
 
-public class SlotManager {
+public class SlotFactory {
 
 	public static SlotMachine getSlotMachine(String slotName) {
 		
